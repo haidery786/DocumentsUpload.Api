@@ -41,39 +41,75 @@ namespace DocumentsUpload.Api.Storage
         public async Task<ResponseFileMetaDataDto> UploadAsync(Stream fileStream, string fileName)
         {
             var response = new ResponseFileMetaDataDto();
-            var blobClient = _container.GetBlobClient(fileName);
+            var file = _container.GetBlobClient(fileName);
 
-            await blobClient.UploadAsync(fileStream);
+            try
+            {
+                if (await file.ExistsAsync())
+                {
+                    return new ResponseFileMetaDataDto
+                    {
+                        Status = $"File: {fileName} already exists.",
+                        Error = true
+                    };
+                }
 
-            response.Status = $"File {fileName} is uploaded successfully.";
-            response.Error = false;
-            response.FileDataDto.BlobUrl = blobClient.Uri.AbsoluteUri;
-            response.FileDataDto.FileName = blobClient.Name;
-            return response;
+                await file.UploadAsync(fileStream);
+
+                return new ResponseFileMetaDataDto
+                {
+                    Status = $"File '{fileName}' uploaded successfully.",
+                    Error = false,
+                    FileDataDto = new FileMetaDataDto
+                    {
+                        BlobUrl = file.Uri.AbsoluteUri,
+                        FileName = file.Name
+                    }
+                };
+            }
+            catch (Azure.RequestFailedException ex)
+            {
+                return new ResponseFileMetaDataDto
+                {
+                    Status = $"Azure error: {ex.Message}",
+                    Error = true
+                };
+            }
+            catch (Exception ex)
+            {
+                return new ResponseFileMetaDataDto
+                {
+                    Status = $"Unexpected error: {ex.Message}",
+                    Error = true
+                };
+            }
         }
 
         public async Task<FileMetaDataDto?> DownloadAsync(string blobFileName)
         {
             BlobClient file = _container.GetBlobClient(blobFileName);
 
-            if (await file.ExistsAsync())
+            if (!await file.ExistsAsync())
             {
-                var data = await file.OpenReadAsync();
-                Stream blobContent = data;
-                var content = await file.DownloadContentAsync();
+                throw new FileNotFoundException($"File: '{blobFileName}' not found.");
+            }
 
-                string name = blobFileName;
-                string contentType = content.Value.Details.ContentType;
+            try
+            {
+                var stream = await file.OpenReadAsync();
+                var properties = await file.GetPropertiesAsync();
 
                 return new FileMetaDataDto
                 {
-                    Content = blobContent,
-                    FileName = name,
-                    ContentType = contentType
+                    Content = stream,
+                    FileName = blobFileName,
+                    ContentType = properties.Value.ContentType ?? "application/octet-stream"
                 };
             }
-
-            return null;
+            catch (Azure.RequestFailedException ex) 
+            {
+                throw new Exception("Azure download failed", ex);
+            }    
         }
 
         public async Task<ResponseFileMetaDataDto> DeleteAsync(string fileName)

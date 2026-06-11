@@ -24,6 +24,9 @@ namespace DocumentsUpload.Api.Controllers
 
             var result = await _fileService.UploadAsync(formFile);
 
+            if(result.Error)
+                return Conflict(result.Error); // 409 for duplicate error
+
             return Ok(result);
         }
 
@@ -40,15 +43,23 @@ namespace DocumentsUpload.Api.Controllers
             return Ok(files);
         }
 
-        [HttpGet("{fileName}/download")]
+        [HttpGet("download/{fileName}")]
         public async Task<IActionResult> Download(string fileName)
         {
-            var result = await _fileService.DownloadAsync(fileName);
-            if (result == null || result.Content == null || string.IsNullOrEmpty(result.ContentType))
+            try
             {
-                return NotFound();
+                var file = await _fileService.DownloadAsync(fileName);
+
+                return File(file.Content, file.ContentType, file.FileName);
             }
-            return File(result.Content, result.ContentType, result.FileName);
+            catch (FileNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         [HttpDelete("fileName")]

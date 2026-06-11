@@ -14,11 +14,11 @@ namespace DocumentsUpload.Api.Services
 
         public async Task<ResponseFileMetaDataDto> UploadAsync(IFormFile file)
         {
-            var fileName = file.FileName;
-            using var stream = file.OpenReadStream();
-            var response = await _blobStorageService.UploadAsync(stream, fileName);
+            var fileName = Path.GetFileName(file.FileName);
 
-            return response;
+            using var stream = file.OpenReadStream();
+
+            return await _blobStorageService.UploadAsync(stream, fileName);
         }
 
         public async Task<List<FileMetaDataDto>> ListAsync()
