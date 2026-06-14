@@ -25,7 +25,7 @@ namespace DocumentsUpload.Api.Controllers
             var result = await _fileService.UploadAsync(formFile);
 
             if(result.Error)
-                return Conflict(result.Error); // 409 for duplicate error
+                return Conflict(result); // 409 for duplicate error
 
             return Ok(result);
         }

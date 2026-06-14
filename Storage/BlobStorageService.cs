@@ -55,6 +55,7 @@ namespace DocumentsUpload.Api.Storage
                 }
 
                 await file.UploadAsync(fileStream);
+                var properties = await file.GetPropertiesAsync();
 
                 return new ResponseFileMetaDataDto
                 {
@@ -63,7 +64,8 @@ namespace DocumentsUpload.Api.Storage
                     FileDataDto = new FileMetaDataDto
                     {
                         BlobUrl = file.Uri.AbsoluteUri,
-                        FileName = file.Name
+                        FileName = file.Name,
+                        ContentType = properties.Value.ContentType ?? "application/octete-stream"
                     }
                 };
             }
