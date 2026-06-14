@@ -1,16 +1,9 @@
 ﻿namespace DocumentsUpload.Api.DTOs
 {
-    public class ResponseFileMetaDataDto
+    public record ResponseFileMetaDataDto
     {
-        public ResponseFileMetaDataDto()
-        {
-            FileDataDto = new FileMetaDataDto();
-        }
-
-        public string? Status { get; set; }
-
-        public bool Error { get; set; }
-
-        public FileMetaDataDto FileDataDto { get; set; }
+        public FileMetaDataDto FileDataDto { get; init; } = new();
+        public string? Status { get; init; }
+        public bool Error { get; init; }
     }
 }
